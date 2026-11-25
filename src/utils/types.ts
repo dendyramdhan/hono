@@ -68,12 +68,15 @@ type IsSeen<T, TSeen> = TSeen extends unknown
 /**
  * A recursive type such as `JSONValue` refers to itself, so `JSONParsed` cannot expand it to the end.
  * `TSeen` holds the types on the current path. A type that is already on the path becomes `JSONValue`.
+ *
+ * Exported so declaration emit can name these aliases for an unresolved type parameter.
+ * Keeping them private makes `tsc` inline the recursion until it reports TS7056.
  */
-type JSONParsedInner<T, TError, TSeen> = [IsSeen<T, TSeen>] extends [never]
+export type JSONParsedInner<T, TError, TSeen> = [IsSeen<T, TSeen>] extends [never]
   ? JSONParsedStep<T, TError, TSeen | [T]>
   : JSONValue
 
-type JSONParsedStep<T, TError, TSeen> = T extends {
+export type JSONParsedStep<T, TError, TSeen> = T extends {
   toJSON(): infer J
 }
   ? (() => J) extends () => JSONPrimitive
