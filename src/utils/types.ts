@@ -66,14 +66,24 @@ type IsSeen<T, TSeen> = TSeen extends unknown
   : never
 
 /**
+ * Supporting type for {@link JSONParsed}.
+ *
+ * Exported so TypeScript can name it when emitting a declaration for a generic
+ * function whose return type is inferred from `c.json()`. `JSONParsed` itself is unchanged.
+ *
  * A recursive type such as `JSONValue` refers to itself, so `JSONParsed` cannot expand it to the end.
  * `TSeen` holds the types on the current path. A type that is already on the path becomes `JSONValue`.
  */
-type JSONParsedInner<T, TError, TSeen> = [IsSeen<T, TSeen>] extends [never]
+export type JSONParsedInner<T, TError, TSeen> = [IsSeen<T, TSeen>] extends [never]
   ? JSONParsedStep<T, TError, TSeen | [T]>
   : JSONValue
 
-type JSONParsedStep<T, TError, TSeen> = T extends {
+/**
+ * Supporting type for {@link JSONParsed}. One step of the {@link JSONParsedInner} recursion.
+ *
+ * Exported so TypeScript can name it during declaration emit. See {@link JSONParsedInner}.
+ */
+export type JSONParsedStep<T, TError, TSeen> = T extends {
   toJSON(): infer J
 }
   ? (() => J) extends () => JSONPrimitive
