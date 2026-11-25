@@ -7,6 +7,7 @@ import DefaultExport, {
   createContext,
   useContext,
   createPortal,
+  ErrorBoundary,
   flushSync,
   isValidElement,
   memo,
@@ -3326,6 +3327,62 @@ describe('DOM', () => {
       expect(root.innerHTML).toBe(
         '<div><div id="a"><p>1</p><button>+</button></div><div id="b"><p>1</p><button>+</button></div></div>'
       )
+    })
+
+    it('does not reinsert an unmounted component after two late updates', () => {
+      let leave!: () => void
+      let updateOld!: (count: number) => void
+
+      const OldScreen = () => {
+        const [count, setCount] = useState(0)
+        updateOld = setCount
+        return <main>Old {count}</main>
+      }
+      const App = () => {
+        const [left, setLeft] = useState(false)
+        leave = () => setLeft(true)
+        return left ? <main>Current</main> : <OldScreen />
+      }
+
+      render(<App />, root)
+      flushSync(leave)
+      flushSync(() => updateOld(1))
+      flushSync(() => updateOld(2))
+      expect(root.innerHTML).toBe('<main>Current</main>')
+    })
+  })
+
+  describe('ErrorBoundary', () => {
+    it('updates a recovered child after the boundary renders it again', () => {
+      let setFail!: (fail: boolean) => void
+      let setCount!: (count: number) => void
+
+      const Child = ({ fail }: { fail: boolean }) => {
+        const [count, set] = useState(0)
+        setCount = set
+        if (fail) {
+          throw new Error('boom')
+        }
+        return <button onClick={() => set(count + 1)}>{count}</button>
+      }
+      const App = () => {
+        const [fail, set] = useState(false)
+        setFail = set
+        return (
+          <ErrorBoundary fallback={<p>Error</p>}>
+            <Child fail={fail} />
+          </ErrorBoundary>
+        )
+      }
+
+      render(<App />, root)
+      expect(root.innerHTML).toBe('<button>0</button>')
+      flushSync(() => setFail(true))
+      expect(root.innerHTML).toBe('<p>Error</p>')
+      flushSync(() => setFail(false))
+      expect(root.innerHTML).toBe('<button>0</button>')
+      flushSync(() => setCount(1))
+      expect(root.innerHTML).toBe('<button>1</button>')
     })
   })
 

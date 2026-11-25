@@ -50,7 +50,7 @@ export type NodeObject = {
   c: Container | undefined // container
   e: SupportedElement | Text | undefined // rendered element
   p?: PreserveNodeType // preserve HTMLElement if it will be unmounted
-  a?: boolean // cancel apply() if true
+  a?: boolean // unmounted; skip updateSync until this node is committed again
   o?: NodeObject // original node
   [DOM_STASH]:
     | [
@@ -299,6 +299,10 @@ const getNextChildren = (
   childrenToRemove: Node[],
   callbacks: EffectData[]
 ): void => {
+  // Only a commit clears the unmounted flag, so a reused node can update again.
+  if (typeof node.tag === 'function') {
+    delete node.a
+  }
   if (node.vR?.length) {
     childrenToRemove.push(...node.vR)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -776,6 +780,10 @@ const replaceContainer = (node: NodeObject, from: DocumentFragment, to: Containe
 }
 
 const updateSync = (context: Context, node: NodeObject): void => {
+  // Leave `a` set. Clearing it here let the next update render an unmounted node.
+  if (node.a) {
+    return
+  }
   node[DOM_STASH][2]?.forEach(([c, v]) => {
     c.values.push(v)
   })
@@ -785,7 +793,6 @@ const updateSync = (context: Context, node: NodeObject): void => {
     return
   }
   if (node.a) {
-    delete node.a
     return
   }
   node[DOM_STASH][2]?.forEach(([c]) => {
