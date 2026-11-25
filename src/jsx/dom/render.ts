@@ -776,6 +776,13 @@ const replaceContainer = (node: NodeObject, from: DocumentFragment, to: Containe
 }
 
 const updateSync = (context: Context, node: NodeObject): void => {
+  // `removeNode` sets `node.a` when a component is unmounted. A state update
+  // that was already queued, or one that arrives later, must not build or
+  // insert that component again. Clearing the flag made the next update look
+  // live and put the unmounted tree back in the document (honojs/hono#5683).
+  if (node.a) {
+    return
+  }
   node[DOM_STASH][2]?.forEach(([c, v]) => {
     c.values.push(v)
   })
@@ -785,7 +792,6 @@ const updateSync = (context: Context, node: NodeObject): void => {
     return
   }
   if (node.a) {
-    delete node.a
     return
   }
   node[DOM_STASH][2]?.forEach(([c]) => {

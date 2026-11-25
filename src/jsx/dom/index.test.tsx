@@ -3327,6 +3327,29 @@ describe('DOM', () => {
         '<div><div id="a"><p>1</p><button>+</button></div><div id="b"><p>1</p><button>+</button></div></div>'
       )
     })
+
+    it('does not reinsert a component after it unmounts and two updates flush', () => {
+      let leave!: () => void
+      let updateOld!: (count: number) => void
+
+      const OldScreen = () => {
+        const [count, setCount] = useState(0)
+        updateOld = setCount
+        return <main>Old {count}</main>
+      }
+      const App = () => {
+        const [left, setLeft] = useState(false)
+        leave = () => setLeft(true)
+        return left ? <main>Current</main> : <OldScreen />
+      }
+
+      render(<App />, root)
+      expect(root.innerHTML).toBe('<main>Old 0</main>')
+      flushSync(leave)
+      flushSync(() => updateOld(1))
+      flushSync(() => updateOld(2))
+      expect(root.innerHTML).toBe('<main>Current</main>')
+    })
   })
 
   describe('keyed components that update in the same tick as a reorder', () => {
