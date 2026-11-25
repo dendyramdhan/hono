@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { createFactory } from 'hono/factory'
 import { testClient } from 'hono/testing'
 
@@ -13,3 +14,8 @@ export type AppType = typeof app
 // `testClient()` returns a client whose members are `ClientRequest` from `hono/client`.
 // It must stay nameable even though this file never imports `hono/client`.
 export const client = testClient(app)
+
+// An unresolved type parameter cannot be reduced to a concrete JSON type, so emit has to
+// name `JSONParsedInner` / `JSONParsedStep`. Those aliases must be exported or tsc reports TS7056.
+export const refused = <Reason extends string>(c: Context, reason: Reason) =>
+  c.json({ reason }, 403)
